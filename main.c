@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdbool.h>
+#include <string.h>
+#include <sys/time.h>
+
 #define MAX_LENGTH 20 // Maximum password length according to azure
 #define LOWER 'l'
 #define UPPER 'u'
@@ -8,21 +12,8 @@
 #define SPECIAL 's'
 #define maxargs 7
 
+int minlength, maxlength, minlower, minupper, mindigit, minspecial;
 
-#include <sys/time.h>
-
-int minlength;
-int maxlength;
-int minlower;
-int maxlower;
-int minupper;
-int maxupper;
-int mindigit;
-int maxdigit;
-int minspecial;
-int maxspecial;
-
-// Warning, here be gpt
 // Function to calculate the number of combinations of 'k' items from 'n' items
 long long combinations(int n, int k) {
     if (k > n) return 0;
@@ -39,20 +30,14 @@ long long combinations(int n, int k) {
     return numerator / denominator;
 }
 
-// Function to calculate the predicted number of valid masks
 unsigned long long calculate_predicted_masks(int minlength, int maxlength,
-                                    int minlower, int maxlower,
-                                    int minupper, int maxupper,
-                                    int mindigit, int maxdigit,
-                                    int minspecial, int maxspecial) {
+                                             int minlower, int minupper,
+                                             int mindigit, int minspecial) {
     
     // Neat little shortcut for if all are equal, thanks wolfram alpha!
     if (minlower == minupper && minupper == mindigit && mindigit == minspecial) {
-    // Variables minlower, minupper, mindigit, and minspecial are all equal
-        if (maxlength == maxlower && maxlower == maxupper && maxupper == maxdigit && maxdigit == maxspecial) {
-            // Variables maxlength, maxlower, maxupper, maxdigit, and maxspecial are all equal
-            return ((4.0 / 3.0) * (-1 + pow(4, maxlength)));
-        }
+        // Variables minlower, minupper, mindigit, and minspecial are all equal
+        return ((4.0 / 3.0) * (-1 + pow(4, maxlength)));
     }
 
     long long total_masks = 0;
@@ -62,10 +47,10 @@ unsigned long long calculate_predicted_masks(int minlength, int maxlength,
         long long valid_masks_length = 0;
         
         // Calculate possible combinations of lowercase, uppercase, digits, and specials
-        for (int lower_count = minlower; lower_count <= maxlower; lower_count++) {
-            for (int upper_count = minupper; upper_count <= maxupper; upper_count++) {
-                for (int digit_count = mindigit; digit_count <= maxdigit; digit_count++) {
-                    for (int special_count = minspecial; special_count <= maxspecial; special_count++) {
+        for (int lower_count = minlower; lower_count <= length; lower_count++) {
+            for (int upper_count = minupper; upper_count <= length - lower_count; upper_count++) {
+                for (int digit_count = mindigit; digit_count <= length - lower_count - upper_count; digit_count++) {
+                    for (int special_count = minspecial; special_count <= length - lower_count - upper_count - digit_count; special_count++) {
                         // Check if current combination satisfies the length requirement
                         int total_count = lower_count + upper_count + digit_count + special_count;
                         if (total_count == length) {
@@ -87,50 +72,53 @@ unsigned long long calculate_predicted_masks(int minlength, int maxlength,
     
     return total_masks;
 }
-// Here end gpt
 
 
-
-
-// Function to generate password masks efficiently
-// Function to generate password masks based on criteria
 void generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
     char mask[MAX_LENGTH + 1];  // Buffer to hold password mask
     int length, i, j;
+    
+    int counts[4]; // For some reason, using an array and memset is faster lmao
+    /*
+    0 = lowercount
+    1 = uppercount
+    2 = digitcount
+    3 = specialcount
+    */
 
     // Iterate over all possible lengths of the password
     for (length = minlength; length <= maxlength; length++) {
         // Iterate over all combinations of characters for the current length
         for (i = 0; i < (1 << (2 * length)); i++) {
-            int lowercount = 0, uppercount = 0, digitcount = 0, specialcount = 0;
+            memset(counts, 0, 16); // 4x 4-bit ints!
 
-            // Generate the mask for the current combination
+            // Generate the mask for the current combination, Takes 15% of the execution time
             for (j = 0; j < length; j++) {
                 int shift = 2 * j;
-                // Determine character type based on bitmask
-                switch ((i >> shift) & 3) {
+                // Determine character type based on bitmask, Takes 22% of the time
+                switch ((i >> shift) & 0b11) {
                     case 0:
                         mask[j] = LOWER;
-                        lowercount++;
+                        counts[0]++;
                         break;
                     case 1:
                         mask[j] = UPPER;
-                        uppercount++;
+                        counts[1]++;
                         break;
                     case 2:
                         mask[j] = DIGIT;
-                        digitcount++;
+                        counts[2]++;
                         break;
                     case 3:
                         mask[j] = SPECIAL;
-                        specialcount++;
+                        counts[3]++;
                         break;
                 }
             }
 
             // Check if the mask satisfies the conditions
-            if (lowercount >= minlower && uppercount >= minupper &&
-                digitcount >= mindigit && specialcount >= minspecial) {
+            if (counts[0] >= minlower && counts[1] >= minupper &&
+                counts[2] >= mindigit && counts[3] >= minspecial) {
                 // Null-terminate the mask string
                 mask[length] = '\0';
                 // Print the valid password mask
@@ -139,6 +127,8 @@ void generate_password_masks(int minlength, int maxlength, int minlower, int min
         }
     }
 }
+
+
 
 char* convert_bytes(unsigned long long bytes) {
     static char result[50]; // Static buffer for the result string (adjust size as needed)
@@ -156,36 +146,26 @@ char* convert_bytes(unsigned long long bytes) {
 }
 
 void print_configuration_info(int minlength, int maxlength,
-                              int minlower, int maxlower,
-                              int minupper, int maxupper,
-                              int mindigit, int maxdigit,
-                              int minspecial, int maxspecial) {
-    unsigned long long number_of_masks = calculate_predicted_masks(minlength, maxlength, minlower, maxlower, minupper, maxupper, mindigit, maxdigit, minspecial, maxspecial);
+                              int minlower, int minupper,
+                              int mindigit, int minspecial) {
+    unsigned long long number_of_masks = calculate_predicted_masks(minlength, maxlength, minlower, minupper, mindigit, minspecial);
     char* size_prediction = convert_bytes(number_of_masks * 2);
     printf(
         "               Configuration Info\n"
         "╔═══════════════════════════════════════════════╗\n"
         "║                       Minimum         Maximum ║\n"
         "║\033[38;5;207m Length                %-16d%-8d\033[1;0m║\n"
-        "║\033[38;5;33m Lowercase             %-16d%-8d\033[1;0m║\n"
-        "║ Uppercase             %-16d%-8d║\n"
-        "║\033[38;5;33m Digits                %-16d%-8d\033[1;0m║\n"
-        "║\033[38;5;207m Special Characters    %-16d%-8d\033[1;0m║\n"
+        "║\033[38;5;33m Lowercase             %-16d\033[1;0m        ║\n"
+        "║ Uppercase             %-16d        ║\n"
+        "║\033[38;5;33m Digits                %-16d\033[1;0m        ║\n"
+        "║\033[38;5;207m Special Characters    %-16d\033[1;0m        ║\n"
         "╟───────────────────────────────────────────────╢\n"
         "║ Total masks       %-28lld║\n"
         "║ Maskfile size     %-28s║\n"
         "╚═══════════════════════════════════════════════╝\n"
         ,
-        minlength, maxlength, minlower, maxlower, minupper,
-        maxupper, mindigit, maxdigit, minspecial, maxspecial, number_of_masks, size_prediction
+        minlength, maxlength, minlower, minupper, mindigit, minspecial, number_of_masks, size_prediction
         );
-
-    if (number_of_masks > 100000000){
-        printf("\033[1;31mWARN\033[1;0m: Detected ridiculous number of masks to be generated, this could take days/weeks!\n");
-    }else if (number_of_masks > 10000000)
-    {
-        printf("\033[1;31mWARN\033[1;0m: Detected significant number of masks to be generated, this could take a lot of time!\n");
-    }
 }
 
 void print_help(){
@@ -238,7 +218,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    print_configuration_info(minlength, maxlength, minlower, maxlower, minupper, maxupper, mindigit, maxdigit, minspecial, maxspecial);
+    print_configuration_info(minlength, maxlength, minlower, minupper, mindigit, minspecial);
 
 
     generate_password_masks(minlength, maxlength, minlower , minupper , mindigit , minspecial);
