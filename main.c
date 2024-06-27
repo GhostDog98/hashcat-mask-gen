@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/time.h>
-
+#include <limits.h>
 #define MAX_LENGTH 20 // Maximum password length according to azure
 #define LOWER 'l'
 #define UPPER 'u'
@@ -12,6 +12,12 @@
 #define SPECIAL 's'
 #define maxargs 7
 
+
+static char buf[16000000000];
+
+
+// Precompute the lookup table
+int lookup_table[4] = {LOWER, UPPER, DIGIT, SPECIAL};
 int minlength, maxlength, minlower, minupper, mindigit, minspecial;
 
 // Function to calculate the number of combinations of 'k' items from 'n' items
@@ -73,7 +79,6 @@ unsigned long long calculate_predicted_masks(int minlength, int maxlength,
     return total_masks;
 }
 
-
 void generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
     char mask[MAX_LENGTH + 1];  // Buffer to hold password mask
     int length, i, j;
@@ -89,46 +94,28 @@ void generate_password_masks(int minlength, int maxlength, int minlower, int min
     // Iterate over all possible lengths of the password
     for (length = minlength; length <= maxlength; length++) {
         // Iterate over all combinations of characters for the current length
-        for (i = 0; i < (1 << (2 * length)); i++) {
+        for (i = 0; i < (1 << (2 * length)); i++) {                                             // 3.2% time share
             memset(counts, 0, 16); // 4x 4-bit ints!
 
-            // Generate the mask for the current combination, Takes 15% of the execution time
-            for (j = 0; j < length; j++) {
+            for (j = 0; j < length; j++) {  // Loop over the length of the mask                 // 10.1% of the time
                 int shift = 2 * j;
-                // Determine character type based on bitmask, Takes 22% of the time
-                switch ((i >> shift) & 0b11) {
-                    case 0:
-                        mask[j] = LOWER;
-                        counts[0]++;
-                        break;
-                    case 1:
-                        mask[j] = UPPER;
-                        counts[1]++;
-                        break;
-                    case 2:
-                        mask[j] = DIGIT;
-                        counts[2]++;
-                        break;
-                    case 3:
-                        mask[j] = SPECIAL;
-                        counts[3]++;
-                        break;
-                }
+                int type = (i >> shift) & 0b11; // Determine character type                     // 4.7% of the time
+
+                // Use the lookup table
+                mask[j] = lookup_table[type];                                                   // 14.3% of the time
+                counts[type]++;                                                                 // 4.7% of the time
             }
 
             // Check if the mask satisfies the conditions
-            if (counts[0] >= minlower && counts[1] >= minupper &&
-                counts[2] >= mindigit && counts[3] >= minspecial) {
+            if (counts[0] >= minlower && counts[1] >= minupper && counts[2] >= mindigit && counts[3] >= minspecial) { // 3.8% of time
                 // Null-terminate the mask string
                 mask[length] = '\0';
                 // Print the valid password mask
-                printf("%s\n", mask);
+                printf("%s\n", mask);                                                           // 5.2% of the time
             }
         }
     }
 }
-
-
 
 char* convert_bytes(unsigned long long bytes) {
     static char result[50]; // Static buffer for the result string (adjust size as needed)
@@ -218,7 +205,12 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+
     print_configuration_info(minlength, maxlength, minlower, minupper, mindigit, minspecial);
+
+
+    //Set buffer to make printf faster
+    setvbuf(stdout, buf, _IOFBF, sizeof(buf));
 
 
     generate_password_masks(minlength, maxlength, minlower , minupper , mindigit , minspecial);
