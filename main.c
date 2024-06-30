@@ -80,7 +80,7 @@ unsigned long long calculate_predicted_masks(int minlength, int maxlength,
     return total_masks;
 }
 
-void n_generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
+void generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
     minlength = (uint_fast8_t) minlength;
     maxlength = (uint_fast8_t) maxlength;
     minlower = (uint_fast8_t) minlower;
@@ -130,89 +130,6 @@ void n_generate_password_masks(int minlength, int maxlength, int minlower, int m
     backtrack(0);
 }
 
-void generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
-    minlength = (uint_fast8_t) minlength;
-    maxlength = (uint_fast8_t) maxlength;
-    minlower = (uint_fast8_t) minlower;
-    minupper = (uint_fast8_t) minupper;
-    mindigit = (uint_fast8_t) mindigit;
-    minspecial = (uint_fast8_t) minspecial;
-
-    char current_number[MAX_LENGTH] = "";
-    uint_fast8_t digit_counts[5] = {0};  // index 0 is unused, we use index 1-4 for digits 1-4
-
-    void backtrack(uint_fast8_t length) {
-        // If the current number exceeds the maximum length, stop
-        if (length > maxlength) {                                                                               // 8.2% of time
-            return;
-        }
-
-        // Pruning: if it's already impossible to meet
-        // the required counts with the remaining available positions, return early
-        if ((maxlength - length + digit_counts[1]) < minlower ||                                                // 4.5% of time
-            (maxlength - length + digit_counts[2]) < minupper ||                                                // 2.0% of time
-            (maxlength - length + digit_counts[3]) < mindigit ||                                                // 1.9% of time
-            (maxlength - length + digit_counts[4]) < minspecial) {                                              // 0.8% of time
-            return;
-        }
-
-        // If the current number meets the criteria, print it
-        if (length >= minlength && digit_counts[1] >= minlower && // 2.6% of time
-            digit_counts[2] >= minupper && digit_counts[3] >= mindigit && digit_counts[4] >= minspecial) {      // 3.4% of time
-            printf("%s\n", current_number);
-        }
-
-        // Try adding each digit from 1 to 4 to the current number
-            current_number[length] = '1';  // Add the digit to the current number
-            digit_counts[1]++;
-
-            // Continue building the number
-            backtrack(length + 1);
-
-            // Backtrack: remove the last added digit and update the count
-            current_number[length] = '\0';
-            digit_counts[1]--;
-
-
-
-            current_number[length] = '2';  // Add the digit to the current number
-            digit_counts[2]++;
-
-            // Continue building the number
-            backtrack(length + 1);
-
-            // Backtrack: remove the last added digit and update the count
-            current_number[length] = '\0';
-            digit_counts[2]--;
-
-
-
-            current_number[length] = '3';  // Add the digit to the current number
-            digit_counts[3]++;
-
-            // Continue building the number
-            backtrack(length + 1);
-
-            // Backtrack: remove the last added digit and update the count
-            current_number[length] = '\0';
-            digit_counts[3]--;
-
-
-
-            current_number[length] = '4';  // Add the digit to the current number
-            digit_counts[4]++;
-
-            // Continue building the number
-            backtrack(length + 1);
-
-            // Backtrack: remove the last added digit and update the count
-            current_number[length] = '\0';
-            digit_counts[4]--;
-    }
-
-    // Start the recursion with an empty number and an empty count of digits
-    backtrack(0);
-}
 
 char* convert_bytes(unsigned long long bytes) {
     static char result[50]; // Static buffer for the result string (adjust size as needed)
