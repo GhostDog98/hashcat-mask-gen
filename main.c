@@ -5,11 +5,12 @@
 #include <string.h>
 #include <sys/time.h>
 #include <limits.h>
-#define MAX_LENGTH 20 // Maximum password length according to azure
-#define LOWER 'l'
-#define UPPER 'u'
-#define DIGIT 'd'
-#define SPECIAL 's'
+#include <stdint.h>
+#define MAX_LENGTH 512 // Maximum password length
+#define LOWER '1'
+#define UPPER '2'
+#define DIGIT '3'
+#define SPECIAL '4'
 #define maxargs 7
 
 
@@ -79,7 +80,7 @@ unsigned long long calculate_predicted_masks(int minlength, int maxlength,
     return total_masks;
 }
 
-void generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
+void old_generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
     char mask[MAX_LENGTH + 1];  // Buffer to hold password mask
     int length, i, j;
     
@@ -116,6 +117,56 @@ void generate_password_masks(int minlength, int maxlength, int minlower, int min
         }
     }
 }
+
+void generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
+    minlength = (uint_fast8_t) minlength;
+    maxlength = (uint_fast8_t) maxlength;
+    minlower = (uint_fast8_t) minlower;
+    minupper = (uint_fast8_t) minupper;
+    mindigit = (uint_fast8_t) mindigit;
+    minspecial = (uint_fast8_t) minspecial;
+
+    char current_number[MAX_LENGTH] = "";
+    uint_fast8_t digit_counts[5] = {0};  // index 0 is unused, we use index 1-4 for digits 1-4
+
+    void backtrack(uint_fast8_t length) {
+        // If the current number exceeds the maximum length, stop
+        if (length > maxlength) {
+            return;
+        }
+
+        // Pruning: if it's already impossible to meet the required counts with the remaining available positions, return early
+        if ((maxlength - length + digit_counts[1]) < minlower ||
+            (maxlength - length + digit_counts[2]) < minupper ||
+            (maxlength - length + digit_counts[3]) < mindigit ||
+            (maxlength - length + digit_counts[4]) < minspecial) {
+            return;
+        }
+
+        // If the current number meets the criteria, print it
+        if (length >= minlength && digit_counts[1] >= minlower && 
+            digit_counts[2] >= minupper && digit_counts[3] >= mindigit && digit_counts[4] >= minspecial) {
+            printf("%s\n", current_number);
+        }
+
+        // Try adding each digit from 1 to 4 to the current number
+        for (uint_fast8_t digit = 1; digit <= 4; digit++) {
+            current_number[length] = '0' + digit;  // Add the digit to the current number
+            digit_counts[digit]++;
+
+            // Continue building the number
+            backtrack(length + 1);
+
+            // Backtrack: remove the last added digit and update the count
+            current_number[length] = '\0';
+            digit_counts[digit]--;
+        }
+    }
+
+    // Start the recursion with an empty number and an empty count of digits
+    backtrack(0);
+}
+
 
 char* convert_bytes(unsigned long long bytes) {
     static char result[50]; // Static buffer for the result string (adjust size as needed)
@@ -218,3 +269,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
