@@ -80,6 +80,8 @@ unsigned long long calculate_predicted_masks(int minlength, int maxlength,
     return total_masks;
 }
 
+
+
 void generate_password_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
     minlength = (uint_fast8_t) minlength;
     maxlength = (uint_fast8_t) maxlength;
@@ -93,43 +95,41 @@ void generate_password_masks(int minlength, int maxlength, int minlower, int min
 
     void backtrack(uint_fast8_t length) {
         // If the current number exceeds the maximum length, stop
-        if (length > maxlength) {                                                                               // 8.2% of time
+        if (length > maxlength) {                                                                               
             return;
         }
 
         // Pruning: if it's already impossible to meet
         // the required counts with the remaining available positions, return early
-        if ((maxlength - length + digit_counts[1]) < minlower ||                                                // 4.5% of time
-            (maxlength - length + digit_counts[2]) < minupper ||                                                // 2.0% of time
-            (maxlength - length + digit_counts[3]) < mindigit ||                                                // 1.9% of time
-            (maxlength - length + digit_counts[4]) < minspecial) {                                              // 0.8% of time
+        if ((maxlength - length + digit_counts[1]) < minlower ||                                                
+            (maxlength - length + digit_counts[2]) < minupper ||                                                
+            (maxlength - length + digit_counts[3]) < mindigit ||                                                
+            (maxlength - length + digit_counts[4]) < minspecial) {                                              
             return;
         }
 
         // If the current number meets the criteria, print it
-        if (length >= minlength && digit_counts[1] >= minlower && // 2.6% of time
-            digit_counts[2] >= minupper && digit_counts[3] >= mindigit && digit_counts[4] >= minspecial) {      // 3.4% of time
+        if (length >= minlength && digit_counts[1] >= minlower && digit_counts[2] >= minupper && digit_counts[3] >= mindigit && digit_counts[4] >= minspecial) {      
             printf("%s\n", current_number);
         }
 
         // Try adding each digit from 1 to 4 to the current number
-        for (uint_fast8_t digit = 1; digit <= 4; digit++) {                                                      // 4.7% of time
-            current_number[length] = '0' + digit;  // Add the digit to the current number,                          3.2% of time
-            digit_counts[digit]++;                                                                               // 4.5% of time
+        for (uint_fast8_t digit = 1; digit <= 4; digit++) {                                                      
+            current_number[length] = '0' + digit;  // Add the digit to the current number,                         
+            digit_counts[digit]++;                                                                               
 
             // Continue building the number
-            backtrack(length + 1);                                                                               // 1.6% of time
+            backtrack(length + 1);                                                                              
 
             // Backtrack: remove the last added digit and update the count
-            current_number[length] = '\0';                                                                       // 1.5% of time
-            digit_counts[digit]--;                                                                               // 3.8% of time
+            current_number[length] = '\0';                                                                       
+            digit_counts[digit]--;                                                                             
         }
     }
 
     // Start the recursion with an empty number and an empty count of digits
     backtrack(0);
 }
-
 
 char* convert_bytes(unsigned long long bytes) {
     static char result[50]; // Static buffer for the result string (adjust size as needed)
