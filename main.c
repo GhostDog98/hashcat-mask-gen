@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <limits.h>
 #include <stdint.h>
-#define MAX_LENGTH 512 // Maximum password length
+#define MAX_LENGTH 512  // Maximum password length
 #define LOWER '1'
 #define UPPER '2'
 #define DIGIT '3'
@@ -25,22 +25,19 @@ int minlength, maxlength, minlower, minupper, mindigit, minspecial;
 long long combinations(int n, int k) {
     if (k > n) return 0;
     if (k == 0 || k == n) return 1;
-    
+
     long long numerator = 1;
     long long denominator = 1;
-    
+
     for (int i = 0; i < k; i++) {
         numerator *= (n - i);
         denominator *= (i + 1);
     }
-    
+
     return numerator / denominator;
 }
 
-unsigned long long calculate_predicted_masks(int minlength, int maxlength,
-                                             int minlower, int minupper,
-                                             int mindigit, int minspecial) {
-    
+unsigned long long calculate_predicted_masks(int minlength, int maxlength, int minlower, int minupper, int mindigit, int minspecial) {
     // Neat little shortcut for if all are equal, thanks wolfram alpha!
     if (minlower == minupper && minupper == mindigit && mindigit == minspecial) {
         // Variables minlower, minupper, mindigit, and minspecial are all equal
@@ -48,11 +45,9 @@ unsigned long long calculate_predicted_masks(int minlength, int maxlength,
     }
 
     long long total_masks = 0;
-    
     // Iterate over each possible length of the password
     for (int length = minlength; length <= maxlength; length++) {
         long long valid_masks_length = 0;
-        
         // Calculate possible combinations of lowercase, uppercase, digits, and specials
         for (int lower_count = minlower; lower_count <= length; lower_count++) {
             for (int upper_count = minupper; upper_count <= length - lower_count; upper_count++) {
@@ -72,11 +67,10 @@ unsigned long long calculate_predicted_masks(int minlength, int maxlength,
                 }
             }
         }
-        
+
         // Add valid masks for this length to total masks
         total_masks += valid_masks_length;
     }
-    
     return total_masks;
 }
 
@@ -95,35 +89,35 @@ void generate_password_masks(int minlength, int maxlength, int minlower, int min
 
     void backtrack(uint_fast8_t length) {
         // If the current number exceeds the maximum length, stop
-        if (length > maxlength) {                                                                               
+        if (length > maxlength) {
             return;
         }
 
         // Pruning: if it's already impossible to meet
         // the required counts with the remaining available positions, return early
-        if ((maxlength - length + digit_counts[1]) < minlower ||                                                
-            (maxlength - length + digit_counts[2]) < minupper ||                                                
-            (maxlength - length + digit_counts[3]) < mindigit ||                                                
-            (maxlength - length + digit_counts[4]) < minspecial) {                                              
+        if ((maxlength - length + digit_counts[1]) < minlower ||
+            (maxlength - length + digit_counts[2]) < minupper ||
+            (maxlength - length + digit_counts[3]) < mindigit ||
+            (maxlength - length + digit_counts[4]) < minspecial) {
             return;
         }
 
         // If the current number meets the criteria, print it
-        if (length >= minlength && digit_counts[1] >= minlower && digit_counts[2] >= minupper && digit_counts[3] >= mindigit && digit_counts[4] >= minspecial) {      
+        if (length >= minlength && digit_counts[1] >= minlower && digit_counts[2] >= minupper && digit_counts[3] >= mindigit && digit_counts[4] >= minspecial) {
             printf("%s\n", current_number);
         }
 
         // Try adding each digit from 1 to 4 to the current number
-        for (uint_fast8_t digit = 1; digit <= 4; digit++) {                                                      
-            current_number[length] = '0' + digit;  // Add the digit to the current number,                         
-            digit_counts[digit]++;                                                                               
+        for (uint_fast8_t digit = 1; digit <= 4; digit++) {
+            current_number[length] = '0' + digit;  // Add the digit to the current number
+            digit_counts[digit]++;
 
             // Continue building the number
-            backtrack(length + 1);                                                                              
+            backtrack(length + 1);
 
             // Backtrack: remove the last added digit and update the count
-            current_number[length] = '\0';                                                                       
-            digit_counts[digit]--;                                                                             
+            current_number[length] = '\0';
+            digit_counts[digit]--;
         }
     }
 
@@ -132,9 +126,9 @@ void generate_password_masks(int minlength, int maxlength, int minlower, int min
 }
 
 char* convert_bytes(unsigned long long bytes) {
-    static char result[50]; // Static buffer for the result string (adjust size as needed)
+    static char result[50];  // Static buffer for the result string (adjust size as needed)
     const char* units[] = {"Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
-    double size = (double)bytes;
+    double size = (double) bytes;
     int unitIndex = 0;
 
     while (size >= 1024 && unitIndex < 8) {
@@ -166,10 +160,10 @@ void print_configuration_info(int minlength, int maxlength,
         "╚═══════════════════════════════════════════════╝\n"
         ,
         minlength, maxlength, minlower, minupper, mindigit, minspecial, number_of_masks, size_prediction
-        );
+    );
 }
 
-void print_help(){
+void print_help() {
     printf(
         "Passwd_gen by Lilly ***REMOVED***\n"
         "Licensed under the GNU AGPLv3\n"
@@ -184,23 +178,22 @@ void print_help(){
         "mindigit  | yes | 1\n"
         "minspecial| yes | 1\n"
         "\n"
-        );
-
+    );
 }
 
 
 
 int main(int argc, char **argv) {
-    if (argc == 1){
+    if (argc == 1) {
         print_help();
         return 0;
     }
 
-    if(argc > maxargs){
+    if (argc > maxargs) {
         printf("Error, too many options provided! You provided %i, expected %i\n", (argc - 1), (maxargs - 1));
         exit(1);
     }
-    if(argc < maxargs){
+    if (argc < maxargs) {
         printf("Error, too few options provided! You provided %i, expected %i\n", (argc - 1), (maxargs - 1));
         exit(1);
     }
@@ -214,7 +207,7 @@ int main(int argc, char **argv) {
     minspecial = atoi(argv[6]);
 
     int min_stable = minlower + minupper + mindigit + minspecial;
-    if(min_stable > maxlength){
+    if (min_stable > maxlength) {
         printf("Error, max length given will not generate any masks due to minimums provided being greater than it!\n");
         exit(1);
     }
@@ -223,7 +216,7 @@ int main(int argc, char **argv) {
     print_configuration_info(minlength, maxlength, minlower, minupper, mindigit, minspecial);
 
 
-    //Set buffer to make printf faster
+    // Set buffer to make printf faster
     setvbuf(stdout, buf, _IOFBF, sizeof(buf));
 
 
